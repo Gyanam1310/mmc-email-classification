@@ -1,0 +1,10 @@
+.env
+.env.*
+*.pem
+secrets/
+credentials/
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+n8n_data/

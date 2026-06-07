@@ -1,0 +1,91 @@
+version: "3.8"
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: mmc-n8n
+    restart: unless-stopped
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      # --- Core ---
+      - N8N_HOST=${N8N_HOST}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-https}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+
+      # --- Authentication ---
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-true}
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+
+      # --- Database (SQLite default; switch to postgres when ready) ---
+      - DB_TYPE=${DB_TYPE:-sqlite}
+      - DB_SQLITE_DATABASE=/home/node/.n8n/database.sqlite
+
+      # PostgreSQL (uncomment DB_TYPE=postgresdb above to activate)
+      # - DB_TYPE=postgresdb
+      # - DB_POSTGRESDB_HOST=${DB_POSTGRESDB_HOST}
+      # - DB_POSTGRESDB_PORT=${DB_POSTGRESDB_PORT:-5432}
+      # - DB_POSTGRESDB_DATABASE=${DB_POSTGRESDB_DATABASE}
+      # - DB_POSTGRESDB_USER=${DB_POSTGRESDB_USER}
+      # - DB_POSTGRESDB_PASSWORD=${DB_POSTGRESDB_PASSWORD}
+
+      # --- Timezone ---
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-UTC}
+      - TZ=${TZ:-UTC}
+
+      # --- Execution ---
+      - EXECUTIONS_PROCESS=main
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=none
+      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+      - EXECUTIONS_DATA_MAX_AGE=${EXECUTIONS_DATA_MAX_AGE:-720}
+
+      # --- Security ---
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - mmc-network
+
+  # --- Nginx reverse proxy ---
+  nginx:
+    image: nginx:stable-alpine
+    container_name: mmc-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro          # mount SSL certs when ready
+    depends_on:
+      - n8n
+    networks:
+      - mmc-network
+
+  # --- PostgreSQL (disabled by default; remove 'profiles' to enable) ---
+  postgres:
+    image: postgres:15-alpine
+    container_name: mmc-postgres
+    restart: unless-stopped
+    profiles:
+      - postgres
+    environment:
+      - POSTGRES_DB=${DB_POSTGRESDB_DATABASE}
+      - POSTGRES_USER=${DB_POSTGRESDB_USER}
+      - POSTGRES_PASSWORD=${DB_POSTGRESDB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mmc-network
+
+volumes:
+  n8n_data:
+  postgres_data:
+
+networks:
+  mmc-network:
+    driver: bridge
