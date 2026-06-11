@@ -5,48 +5,44 @@ services:
     image: n8nio/n8n:latest
     container_name: mmc-n8n
     restart: unless-stopped
+
     ports:
-      - "${N8N_PORT:-5678}:5678"
+      - "5678:5678"
+
     environment:
-      # --- Core ---
-      - N8N_HOST=n8n.mmcconvert.com
+      - N8N_HOST=${N8N_HOST}
       - N8N_PORT=5678
-      - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://n8n.mmcconvert.com/
+      - N8N_PROTOCOL=${N8N_PROTOCOL}
+      - WEBHOOK_URL=${WEBHOOK_URL}
       - N8N_EDITOR_BASE_URL=https://n8n.mmcconvert.com
       - N8N_SECURE_COOKIE=false
 
-      # --- Authentication ---
-      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-true}
+      - N8N_PROXY_HOPS=1
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE}
       - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
       - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
 
-      # --- Database (SQLite default; switch to postgres when ready) ---
-      - DB_TYPE=${DB_TYPE:-sqlite}
+      - DB_TYPE=${DB_TYPE}
       - DB_SQLITE_DATABASE=/home/node/.n8n/database.sqlite
 
-      # --- Timezone ---
-      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-UTC}
-      - TZ=${TZ:-UTC}
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+      - TZ=${TZ}
 
-      # --- Execution ---
-      - EXECUTIONS_PROCESS=main
       - EXECUTIONS_DATA_SAVE_ON_ERROR=all
       - EXECUTIONS_DATA_SAVE_ON_SUCCESS=none
       - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
-      - EXECUTIONS_DATA_MAX_AGE=${EXECUTIONS_DATA_MAX_AGE:-720}
+      - EXECUTIONS_DATA_MAX_AGE=${EXECUTIONS_DATA_MAX_AGE}
 
-      # --- Security ---
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
 
     volumes:
       - n8n_data:/home/node/.n8n
+
     networks:
       - mmc-network
 
 volumes:
   n8n_data:
-  postgres_data:
 
 networks:
   mmc-network:
